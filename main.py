@@ -1,23 +1,30 @@
+from pyrsistent import freeze
+
 def get_relation_class(M):
     class relation:
-        origin = frozenset(M)
-        relations = ()
 
+        origin = freeze(M)
         def __init__(self, setM):
-            self.relations = frozenset(setM)
+
+            self.relations = freeze(setM)
 
 
-        def has_element(element):
-            return element in set
+        def has_pair(self, pair):
+            if pair[0] in self.origin and pair[1] in self.origin:
+                return pair in set
+            else:
+                return False
 
-        def add_element(self, element):
+        def add_pair(self, pair):
             tmp = set(self.relations)
-            tmp.add(element)
+            if pair[0] in self.origin and pair[1] in self.origin:
+                tmp.add(pair)
             return relation(self.origin, tmp)
 
-        def remove_element(self, element):
+        def remove_pair(self, pair):
             tmp = set(self.relations)
-            tmp.remove(element)
+            if pair[0] in self.origin and pair[1] in self.origin:
+                tmp.remove(pair)
             return relation(self.origin, tmp)
 
         def union(self, relation1):
@@ -84,11 +91,21 @@ def get_relation_class(M):
 
     return relation
 
+set1 = set((1, 4, 5, 5, 7))
+set2 = {1, 4, 4, 9, 5, 5, 7}
 
-# engineers = Set(['John', 'Jane', 'Jack', 'Janice'])
-# programmers = Set(['Jack', 'Sam', 'Susan', 'Janice'])
-# managers = Set(['Jane', 'Jack', 'Susan', 'Zack'])
-# employees = engineers | programmers | managers           # union
-# engineering_management = engineers & managers            # intersection
-# fulltime_management = managers - engineers - programmers # difference
-# engineers.add('Marvin')                                  # add element
+print(set1)
+print(set2)
+
+test1 = get_relation_class(set1)
+# test2 = get_relation_class(set2)
+
+
+print(test1.origin)
+
+print(test1)
+test1.origin.add(12)
+print(test1.origin)
+# a = test1(())
+# print (a)
+
