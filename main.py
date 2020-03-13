@@ -1,58 +1,42 @@
-from pyrsistent import pset
+from pyrsistent import pset, s
 import warnings
 
 def get_relation_class(M):
     class relation:
 
         origin = pset(M)
-        # pridala by som moznost neposielat do konstruktora mnozinu relacii
-        def __init__(self, setM):
+
+        def __init__(self, setM = s()):
             self.relations = pset(setM)
 
 
-        # netreba kontrolovat jednotlive prvky
-        # nepotrebny else
         def has_pair(self, pair):
-            if pair[0] in self.origin and pair[1] in self.origin:
-                return pair in self.relations
-            else:
-                return False
+            return pair in self.relations
 
-        # nepotrebny else
+
         def add_pair(self, pair):
             if pair[0] in self.origin and pair[1] in self.origin:
                 return relation(self.relations.add(pair))
-            else:
-                return self
+            return self
 
 
-        # nepotrebny else
         def remove_pair(self, pair):
-            if pair in self.relations:
-                return relation(self.relations.remove(pair))
-            else:
-                return self
+            return relation(self.relations.discard(pair))
 
 
-        # relation je instancia tejto triedy - rovnako aj v dalsich metodach
         def union(self, relation1):
-            tmp = set()
-            for pair in relation1:
-                if (pair[0] in self.origin and pair[1] in self.origin):
-                    tmp.add(pair)
-                else:
-                    warnings.warn("Not able to union sets above different basic sets")
-                    return self
-
-            return relation(self.relations | tmp)
+            if not relation1.origin.issubset(self.origin):
+                warnings.warn("Not able to union above unmatchable basic sets")
+                return self
+            return relation(self.relations | relation1.relations)
 
 
         def intersect(self, relation1):
-            return relation(self.relations & relation1)
+            return relation(self.relations & relation1.relations)
 
 
         def substract(self, relation1):
-            return relation(self.relations - relation1)
+            return relation(self.relations - relation1.relations)
 
 
         def inverse(self):
@@ -63,32 +47,23 @@ def get_relation_class(M):
 
 
         def composition(self, relation1):
+            if not relation1.origin.issubset(self.origin):
+                warnings.warn("Would not get an instance of class above current basic set")
+                return self
             tmp = set()
-            for first, second1 in self.relations:
-                for second2, third in relation1:
-                    if second1 == second2 and third in self.origin:
+            for first, second1 in relation1.relations:
+                for second2, third in self.relations:
+                    if second1 == second2:
                         tmp.add((first, third))
             return relation(tmp)
 
-        # velmi komplikovane, nerobila by som kontroly podla dlzky
-        # da sa zjednodusit pomocou predikatu all
+
         def is_reflexive(self):
-            non_reflexive = len(self.origin)
-            for pair in self.relations:
-                if pair[0] == pair[1]:
-                    non_reflexive -= 1
+            return all(self.has_pair((a,a)) for a in self.origin)
 
-            if non_reflexive == 0:
-                return True
-            else:
-                return False
 
-        # da sa zjednodusit predikatom all
         def is_symmetric(self):
-            for pair in self.relations:
-                if (pair[1], pair[0]) not in self.relations:
-                    return False
-            return True
+            return all(self.has_pair((b, a)) for (a, b) in self.relations)
 
 
         def transitive_closure(self):
@@ -105,18 +80,13 @@ def get_relation_class(M):
 
             return closure
 
-        # da sa zapisat bez if
-        def is_transitive(self):
-            if self.relations == self.transitive_closure():
-                return True
-            else:
-                return False
 
-        # da sa napisat prehladnejsie vnutornym for cyklom
+        def is_transitive(self):
+            return self.relations == self.transitive_closure()
+
+
         def reflexive_transitive_closure(self):
-            reflexive = set()
-            for element in self.origin:
-                reflexive.add((element, element))
+            reflexive = set((a,a) for a in self.origin)
             return relation(self.transitive_closure() | reflexive)
 
     return relation
@@ -126,7 +96,7 @@ def get_relation_class(M):
 set1 = set((1, 4, 5, 5, 7))
 print(set1)
 
-print("Testin if get_relation_class returns a class")
+print("Testing if get_relation_class returns a class")
 test1 = get_relation_class(set1)
 print(test1)
 print(test1.origin)
@@ -177,23 +147,31 @@ print(g.relations)
 print()
 
 
-print("Union G with {(7, 7), (2, 4), (4, 7), (5, 5)}")
-h = g.union({(7, 7), (2, 4), (4, 7), (5, 5)})
+print("Union G with Relation class above set {2, 4, 5, 7}")
+test2 = get_relation_class({2, 4, 5, 7})
+h1 = test2({(5, 5), (4, 7), (2, 4), (7, 7)})
+h = g.union(h1)
 print(h.relations)
 print()
 
-print("Union G with {(7, 7), (4, 7), (5, 5)}")
-i = g.union({(7, 7), (4, 7), (5, 5)})
+print("Union G with Relation class above set {4, 5, 7}")
+test3 = get_relation_class({4, 5, 7})
+i1 = test3({(4, 5), (7, 7)})
+i = g.union(i1)
 print(i.relations)
 print()
 
 print("Intersect G with {(7, 7), (2, 4), (4, 7), (5, 5)}")
-j = g.intersect({(7, 7), (2, 4), (4, 7), (5, 5)})
+test4 = get_relation_class({2, 4, 5, 7})
+j1 = test4({(7, 7), (2, 4), (4, 7), (5, 5)})
+j = g.intersect(j1)
 print(j.relations)
 print()
 
 print("Substract (5, 4) and (7, 5) from G")
-k = g.substract({(5, 4), (7, 5)})
+test5 = get_relation_class(g.origin)
+k1 = test5({(5, 4), (7, 5)})
+k = g.substract(k1)
 print(k.relations)
 print()
 
@@ -203,7 +181,16 @@ print(l.relations)
 print()
 
 print("Composite G with {(4, 1), (7, 2), (7, 5)}")
-n = g.composition({(4, 1), (7, 2), (7, 5)})
+test6 = get_relation_class({1, 2, 4, 5, 7})
+n1 = test6({(4, 1), (7, 2), (7, 5)})
+n = g.composition(n1)
+print(n.relations)
+print()
+
+print("Composite G with {(4, 1), (7, 2), (7, 5)}")
+test7 = get_relation_class({1, 4, 5, 7})
+n2 = test6({(4, 1), (7, 5)})
+n = g.composition(n2)
 print(n.relations)
 print()
 
@@ -213,7 +200,9 @@ print(n.is_reflexive())
 print()
 
 print("What about after adding all pairs needed?")
-o = n.union({(1, 1), (4, 4), (5, 5), (7, 7)})
+test8 = get_relation_class(g.origin)
+o1 = test8({(1, 1), (4, 4), (5, 5), (7, 7)})
+o = n.union(o1)
 print(o.relations)
 print(o.is_reflexive())
 print()
@@ -224,7 +213,9 @@ print(n.is_symmetric())
 print()
 
 print("What about after adding all pairs needed?")
-p = n.union({(5, 4), (5, 7)})
+test9 = get_relation_class({4, 5, 7})
+p1 = test9({(4, 5), (7, 4), (7, 1)})
+p = n.union(p1)
 print(p.relations)
 print(p.is_symmetric())
 print()
@@ -235,9 +226,11 @@ print(n.is_transitive())
 print()
 
 print("What about after adding all pairs needed?")
-p = n.union({(4, 1), (1, 1), (5,5), (7,1)})
-print(p.relations)
-print(p.is_transitive())
+test10 = get_relation_class(g.origin)
+r1 = test10({ (1, 1), (5,5), (5, 7)})
+r = n.union(r1)
+print(r.relations)
+print(r.is_transitive())
 print()
 
 print("Reflexive-transitive closure of composition")
