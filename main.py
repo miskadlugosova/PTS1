@@ -1,22 +1,24 @@
-from pyrsistent import freeze
+from pyrsistent import pset
 import warnings
 
 def get_relation_class(M):
     class relation:
 
-        origin = freeze(M)
+        origin = pset(M)
+        # pridala by som moznost neposielat do konstruktora mnozinu relacii
         def __init__(self, setM):
-            self.relations = freeze(setM)
+            self.relations = pset(setM)
 
 
-
+        # netreba kontrolovat jednotlive prvky
+        # nepotrebny else
         def has_pair(self, pair):
             if pair[0] in self.origin and pair[1] in self.origin:
                 return pair in self.relations
             else:
                 return False
 
-
+        # nepotrebny else
         def add_pair(self, pair):
             if pair[0] in self.origin and pair[1] in self.origin:
                 return relation(self.relations.add(pair))
@@ -24,6 +26,7 @@ def get_relation_class(M):
                 return self
 
 
+        # nepotrebny else
         def remove_pair(self, pair):
             if pair in self.relations:
                 return relation(self.relations.remove(pair))
@@ -31,6 +34,7 @@ def get_relation_class(M):
                 return self
 
 
+        # relation je instancia tejto triedy - rovnako aj v dalsich metodach
         def union(self, relation1):
             tmp = set()
             for pair in relation1:
@@ -66,7 +70,8 @@ def get_relation_class(M):
                         tmp.add((first, third))
             return relation(tmp)
 
-
+        # velmi komplikovane, nerobila by som kontroly podla dlzky
+        # da sa zjednodusit pomocou predikatu all
         def is_reflexive(self):
             non_reflexive = len(self.origin)
             for pair in self.relations:
@@ -78,7 +83,7 @@ def get_relation_class(M):
             else:
                 return False
 
-
+        # da sa zjednodusit predikatom all
         def is_symmetric(self):
             for pair in self.relations:
                 if (pair[1], pair[0]) not in self.relations:
@@ -100,13 +105,14 @@ def get_relation_class(M):
 
             return closure
 
-
+        # da sa zapisat bez if
         def is_transitive(self):
             if self.relations == self.transitive_closure():
                 return True
             else:
                 return False
 
+        # da sa napisat prehladnejsie vnutornym for cyklom
         def reflexive_transitive_closure(self):
             reflexive = set()
             for element in self.origin:
